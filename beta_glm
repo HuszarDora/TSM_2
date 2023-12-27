@@ -1,0 +1,78 @@
+import pandas as pd
+from sklearn.linear_model import TweedieRegressor
+import scipy.stats as st
+import matplotlib.pyplot as plt
+from sklearn.metrics import roc_curve, auc
+import numpy as np
+
+# Adatok betöltése
+data_alap = pd.read_csv("nfl_elkapok.csv", sep=";", decimal=",", index_col=0)
+data = data_alap[data_alap['Tgt'] > 15]
+
+# Független változók (X) és a függő változó (y) kiválasztása
+X = data[["Age", "G", "Tgt", "TD", "1D", "R/G"]]
+y = data["Ctch%"]
+
+# GLM modell létrehozása
+model = TweedieRegressor(power=0, link='log')
+
+# A modell betanítása
+model.fit(X, y)
+
+# Az eredmények kiírása
+print(model.coef_)
+
+# Együtthatók standard hibájának kiszámítása
+standard_error = st.sem(model.coef_)
+
+# Szabadságfokok számítása
+df = len(X) - 1
+
+# Konfidencia intervallumok számítása
+confidence_interval = st.t.interval(0.95, df, loc=model.coef_, scale=standard_error)
+
+print(f"Konfidencia intervallum: {confidence_interval}")
+
+r_squared = model.score(X, y)
+
+print(f"R^2 érték: {r_squared}")
+
+# Az osztály valószínűségeinek számítása
+# y_score = model.predict(X)
+
+# ROC görbe adatok számítása
+# fpr, tpr, _ = roc_curve(y, y_score)
+
+# ROC görbe ábrázolása
+# plt.figure()
+# plt.plot(fpr, tpr, label='ROC curve (area = %0.2f)' % auc(fpr, tpr))
+# plt.plot([0, 1], [0, 1], 'k--')
+# plt.xlim([0.0, 1.0])
+# plt.ylim([0.0, 1.05])
+# plt.xlabel('False Positive Rate')
+# plt.ylabel('True Positive Rate')
+# plt.title('Receiver operating characteristic')
+# plt.legend(loc="lower right")
+# plt.show()
+
+# Együtthatók ábrázolása
+plt.figure()
+plt.bar(np.arange(len(model.coef_)), model.coef_)
+plt.xticks(np.arange(len(model.coef_)), X.columns, rotation=90)
+plt.title('Model Coefficients')
+plt.show()
+
+# Predikciók számítása
+y_pred = model.predict(X)
+
+# Maradékok számítása
+residuals = y - y_pred
+
+# Maradékok ábrázolása
+plt.figure()
+plt.scatter(y_pred, residuals)
+plt.axhline(y=0, color='r', linestyle='-')
+plt.xlabel('Predicted Values')
+plt.ylabel('Residuals')
+plt.title('Residual Plot')
+plt.show()
